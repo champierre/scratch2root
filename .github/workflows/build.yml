@@ -1,0 +1,33 @@
+name: Deploy
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "!*"
+permissions:
+  contents: write
+jobs:
+  build-deploy:
+    concurrency: ci-${{ github.ref }} # Recommended if you intend to make multiple deployments in quick succession.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          repository: LLK/scratch-gui
+          ref: develop
+      - run: npm install
+      - uses: actions/checkout@v3
+        with:
+          path: ./scratch2root
+      - run: sh ./scratch2root/install.sh
+      - run: npm run build
+      - name: npm install under scratch2root
+        run: npm install
+        working-directory: ./scratch2root
+      - name: Copy sample.sb3 to build folder
+        run: cp ./scratch2root/sample_projects/xcratch/sample.sb3 ./build
+      - name: Deploy 🚀
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: build
