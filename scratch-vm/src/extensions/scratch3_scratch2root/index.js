@@ -19,6 +19,21 @@ const Message = {
         'ja': '前に進む',
         'ja-Hira': 'まえにすすむ',
         'en': 'forward'
+    },
+    right: {
+        'ja': '右に曲がる',
+        'ja-Hira': 'みぎにまがる',
+        'en': 'right'
+    },
+    left: {
+        'ja': '左に曲がる',
+        'ja-Hira': 'ひだりにまがる',
+        'en': 'left'
+    },
+    stop: {
+        'ja': '止まる',
+        'ja-Hira': 'とまる',
+        'en': 'stop'
     }
 };
 
@@ -92,6 +107,21 @@ class Scratch3Scratch2RootBlocks {
                     opcode: 'forward',
                     blockType: BlockType.COMMAND,
                     text: Message.forward[this.locale]
+                },
+                {
+                    opcode: 'right',
+                    blockType: BlockType.COMMAND,
+                    text: Message.right[this.locale]
+                },
+                {
+                    opcode: 'left',
+                    blockType: BlockType.COMMAND,
+                    text: Message.left[this.locale]
+                },
+                {
+                    opcode: 'stop',
+                    blockType: BlockType.COMMAND,
+                    text: Message.stop[this.locale]
                 }
             ],
             menus: {
@@ -126,7 +156,7 @@ class Scratch3Scratch2RootBlocks {
             console.log('Service found:', service.uuid);
 
             const rxChar = await service.getCharacteristic(RX_CHAR_UUID);
-            this.rx_char = rxChar;
+            this.rxChar = rxChar;
             console.log('Characteristic found:', rxChar.uuid);
         } catch (error) {
             console.error('Error:', error);
@@ -144,6 +174,42 @@ class Scratch3Scratch2RootBlocks {
             0x01, 0x04, 0x00, 0x00, 0x00, 0x00, 0x64, 0x00,
             0x00, 0x00, 0x64, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0xD1
+        ]);
+
+        await this.rxChar.writeValue(value);
+    }
+
+    async right () {
+        console.log('right');
+
+        const value = new Uint8Array([
+            0x01, 0x04, 0x00, 0x00, 0x00, 0x00, 0x64, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x25
+        ]);
+
+        await this.rxChar.writeValue(value);
+    }
+
+    async left () {
+        console.log('left');
+
+        const value = new Uint8Array([
+            0x01, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x64, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x8A
+        ]);
+
+        await this.rxChar.writeValue(value);
+    }
+
+    async stop () {
+        console.log('stop');
+
+        const value = new Uint8Array([
+            0x01, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x7E
         ]);
 
         await this.rxChar.writeValue(value);
