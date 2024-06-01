@@ -15,13 +15,12 @@ const Message = {
         'ja-Hira': 'せつだん',
         'en': 'disconnect'
     },
-    send: {
-        'ja': '[MSG]を送る',
-        'ja-Hira': '[MSG]をおくる',
-        'en': 'send [MSG]'
-    },
-
-}
+    forward: {
+        'ja': '前に進む',
+        'ja-Hira': 'まえにすすむ',
+        'en': 'forward'
+    }
+};
 
 const AvailableLocales = ['en', 'ja', 'ja-Hira'];
 
@@ -65,12 +64,12 @@ class Scratch3Scratch2RootBlocks {
         extensionURL = url;
     }
 
-    constructor(runtime) {
+    constructor (runtime) {
         this.runtime = runtime;
-        this.port = '';
+        this.rxChar = null;
     }
 
-    getInfo() {
+    getInfo () {
         this.locale = this.setLocale();
 
         return {
@@ -90,15 +89,9 @@ class Scratch3Scratch2RootBlocks {
                     text: Message.disconnect[this.locale]
                 },
                 {
-                    opcode: 'send',
+                    opcode: 'forward',
                     blockType: BlockType.COMMAND,
-                    text: Message.send[this.locale],
-                    arguments: {
-                        MSG: {
-                            type: ArgumentType.STRING,
-                            defaultValue: 'test'
-                        }
-                    }
+                    text: Message.forward[this.locale]
                 }
             ],
             menus: {
@@ -106,51 +99,61 @@ class Scratch3Scratch2RootBlocks {
         };
     }
 
-    async connect() {
-        console.log('connect');
-        if ('serial' in navigator) {
-            try {
-                this.port = await navigator.serial.requestPort();
-                await this.port.open({ baudRate: 115200 });
-                alert('Connected to the serial port');
-            } catch (error) {
-                console.error('Error:', error);
-            }
-        } else {
-            console.error('Web Serial API not supported.');
+    async connect () {
+        const ROOT_SERVICE_UUID = '48c5d828-ac2a-442d-97a3-0c9822b04979';
+        const DEVICE_INFORMATION_SERVICE = '0000180a-0000-1000-8000-00805f9b34fb';
+        const UART_SERVICE = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
+        const TX_CHAR_UUID = '6e400002-b5a3-f393-e0a9-e50e24dcca9e';
+        const RX_CHAR_UUID = '6e400002-b5a3-f393-e0a9-e50e24dcca9e';
+
+        if (!navigator.bluetooth) {
+            console.log('Web Bluetooth API is not supported by this browser.');
+            return;
+        }
+
+        try {
+            const device = await navigator.bluetooth.requestDevice({
+                filters: [{
+                    services: [ROOT_SERVICE_UUID]
+                }],
+                optionalServices: [DEVICE_INFORMATION_SERVICE, UART_SERVICE]
+            });
+
+            const server = await device.gatt.connect();
+            console.log('Connected to GATT server');
+
+            const service = await server.getPrimaryService(UART_SERVICE);
+            console.log('Service found:', service.uuid);
+
+            const rxChar = await service.getCharacteristic(RX_CHAR_UUID);
+            this.rx_char = rxChar;
+            console.log('Characteristic found:', rxChar.uuid);
+        } catch (error) {
+            console.error('Error:', error);
         }
     }
 
-    async disconnect() {
+    disconnect () {
         console.log('disconnect');
-        if ('serial' in navigator) {
-            if (this.port && this.port.close) {
-                await this.port.close();
-                port = null;
-                alert('Disconnected from the serial port');
-            } else {
-                console.error('No active serial connection to disconnect');
-            }
-        } else {
-            console.error('Web Serial API not supported.');
-        }
     }
 
-    async send(args) {
-        console.log(args.MSG);
-        if (this.port && this.port.writable) {
-            const writer = this.port.writable.getWriter();
-            const data = new TextEncoder().encode(args.MSG);
-            await writer.write(data);
-            writer.releaseLock();
-        }
+    async forward () {
+        console.log('forward');
+
+        const value = new Uint8Array([
+            0x01, 0x04, 0x00, 0x00, 0x00, 0x00, 0x64, 0x00,
+            0x00, 0x00, 0x64, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0xD1
+        ]);
+
+        await this.rxChar.writeValue(value);
     }
 
     /**
      * Get locale for message text.
      * @return {string} - Locale of this editor.
      */
-    setLocale() {
+    setLocale () {
         const locale = formatMessage.setup().locale;
         if (AvailableLocales.includes(locale)) {
             return locale;
