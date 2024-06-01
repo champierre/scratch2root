@@ -34,6 +34,11 @@ const Message = {
         'ja': '止まる',
         'ja-Hira': 'とまる',
         'en': 'stop'
+    },
+    backward: {
+        'ja': '後ろに進む',
+        'ja-Hira': 'うしろにすすむ',
+        'en': 'backward'
     }
 };
 
@@ -117,6 +122,11 @@ class Scratch3Scratch2RootBlocks {
                     opcode: 'left',
                     blockType: BlockType.COMMAND,
                     text: Message.left[this.locale]
+                },
+                {
+                    opcode: 'backward',
+                    blockType: BlockType.COMMAND,
+                    text: Message.backward[this.locale]
                 },
                 {
                     opcode: 'stop',
@@ -210,6 +220,18 @@ class Scratch3Scratch2RootBlocks {
             0x01, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x7E
+        ]);
+
+        await this.rxChar.writeValue(value);
+    }
+
+    async backward () {
+        console.log('backward');
+
+        const value = new Uint8Array([
+            0x01, 0x04, 0x00, 0xFF, 0xFF, 0xFF, 0x9C, 0xFF,
+            0xFF, 0xFF, 0x9C, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x71
         ]);
 
         await this.rxChar.writeValue(value);
