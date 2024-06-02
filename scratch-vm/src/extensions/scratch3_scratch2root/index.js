@@ -92,6 +92,7 @@ class Scratch3Scratch2RootBlocks {
     constructor (runtime) {
         this.runtime = runtime;
         this.rxChar = null;
+        this.crcTable = this.generateCrc8Table();
     }
 
     getInfo () {
@@ -199,10 +200,10 @@ class Scratch3Scratch2RootBlocks {
         const value = new Uint8Array([
             0x01, 0x04, 0x00, 0x00, 0x00, 0x00, 0x64, 0x00,
             0x00, 0x00, 0x64, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0xD1
+            0x00, 0x00, 0x00
         ]);
 
-        await this.rxChar.writeValue(value);
+        await this.rxChar.writeValue(this.appendCrc(value));
     }
 
     async right () {
@@ -211,10 +212,10 @@ class Scratch3Scratch2RootBlocks {
         const value = new Uint8Array([
             0x01, 0x04, 0x00, 0x00, 0x00, 0x00, 0x64, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x25
+            0x00, 0x00, 0x00
         ]);
 
-        await this.rxChar.writeValue(value);
+        await this.rxChar.writeValue(this.appendCrc(value));
     }
 
     async left () {
@@ -223,10 +224,10 @@ class Scratch3Scratch2RootBlocks {
         const value = new Uint8Array([
             0x01, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x64, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x8A
+            0x00, 0x00, 0x00
         ]);
 
-        await this.rxChar.writeValue(value);
+        await this.rxChar.writeValue(this.appendCrc(value));
     }
 
     async stop () {
@@ -235,10 +236,10 @@ class Scratch3Scratch2RootBlocks {
         const value = new Uint8Array([
             0x01, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x7E
+            0x00, 0x00, 0x00
         ]);
 
-        await this.rxChar.writeValue(value);
+        await this.rxChar.writeValue(this.appendCrc(value));
     }
 
     async backward () {
@@ -247,17 +248,16 @@ class Scratch3Scratch2RootBlocks {
         const value = new Uint8Array([
             0x01, 0x04, 0x00, 0xFF, 0xFF, 0xFF, 0x9C, 0xFF,
             0xFF, 0xFF, 0x9C, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x71
+            0x00, 0x00, 0x00
         ]);
 
-        await this.rxChar.writeValue(value);
+        await this.rxChar.writeValue(this.appendCrc(value));
     }
 
     async driveDistance (args) {
         console.log('driveDistance');
         const distance = Cast.toNumber(args.DISTANCE);
         const value = this.setDistance(distance);
-
         await this.rxChar.writeValue(this.appendCrc(value));
     }
 
@@ -305,6 +305,39 @@ class Scratch3Scratch2RootBlocks {
         arr[5] = (distance >> 8) & 0xFF;
         arr[6] = distance & 0xFF;
         return arr;
+    }
+
+    generateCrc8Table () {
+        const polynomial = 0x07;
+        const table = new Uint8Array(256);
+        for (let i = 0; i < 256; i++) {
+            let crc = i;
+            for (let j = 0; j < 8; j++) {
+                if (crc & 0x80) {
+                    crc = (crc << 1) ^ polynomial;
+                } else {
+                    crc <<= 1;
+                }
+            }
+            table[i] = crc & 0xFF;
+        }
+        return table;
+    }
+
+    crc8 (data) {
+        let crc = 0x00; // Initial value
+        for (let i = 0; i < data.length; i++) {
+            const byte = data[i];
+            crc = this.crcTable[(crc ^ byte) & 0xFF];
+        }
+        return crc;
+    }
+
+    appendCrc (value) {
+        const newValue = new Uint8Array(value.length + 1);
+        newValue.set(value);
+        newValue[19] = this.crc8(value);
+        return newValue;
     }
 
     /**
