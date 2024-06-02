@@ -44,6 +44,11 @@ const Message = {
         'ja': '[DISTANCE] mm進む',
         'ja-Hira': '[DISTANCE] mmすすむ',
         'en': 'drive [DISTANCE] mm'
+    },
+    rotate: {
+        'ja': '[ANGLE] 度回転する',
+        'ja-Hira': '[ANGLE] どかいてんする',
+        'en': 'rotate [ANGLE] degrees'
     }
 };
 
@@ -122,6 +127,17 @@ class Scratch3Scratch2RootBlocks {
                         DISTANCE: {
                             type: ArgumentType.NUMBER,
                             defaultValue: 100
+                        }
+                    }
+                },
+                {
+                    opcode: 'rotate',
+                    blockType: BlockType.COMMAND,
+                    text: Message.rotate[this.locale],
+                    arguments: {
+                        ANGLE: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 90
                         }
                     }
                 },
@@ -261,6 +277,13 @@ class Scratch3Scratch2RootBlocks {
         await this.rxChar.writeValue(this.appendCrc(value));
     }
 
+    async rotate (args) {
+        console.log('rotate');
+        const angle = Cast.toNumber(args.ANGLE);
+        const value = this.setAngle(angle * 10);
+        await this.rxChar.writeValue(this.appendCrc(value));
+    }
+
     generateCrc8Table () {
         const polynomial = 0x07;
         const table = new Uint8Array(256);
@@ -304,6 +327,18 @@ class Scratch3Scratch2RootBlocks {
         arr[4] = (distance >> 16) & 0xFF;
         arr[5] = (distance >> 8) & 0xFF;
         arr[6] = distance & 0xFF;
+        return arr;
+    }
+
+    setAngle (angle) {
+        const arr = new Uint8Array(19);
+        arr[0] = 1;
+        arr[1] = 12;
+        arr[2] = 0;
+        arr[3] = (angle >> 24) & 0xFF;
+        arr[4] = (angle >> 16) & 0xFF;
+        arr[5] = (angle >> 8) & 0xFF;
+        arr[6] = angle & 0xFF;
         return arr;
     }
 
