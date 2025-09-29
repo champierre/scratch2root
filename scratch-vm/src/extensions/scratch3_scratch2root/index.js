@@ -24,6 +24,16 @@ const Message = {
         'ja': '[ANGLE] 度回転する',
         'ja-Hira': '[ANGLE] どかいてんする',
         'en': 'rotate [ANGLE] degrees'
+    },
+    penUp: {
+        'ja': 'ペンを上げる',
+        'ja-Hira': 'ペンをあげる',
+        'en': 'pen up'
+    },
+    penDown: {
+        'ja': 'ペンを下げる',
+        'ja-Hira': 'ペンをさげる',
+        'en': 'pen down'
     }
 };
 
@@ -115,6 +125,16 @@ class Scratch3Scratch2RootBlocks {
                             defaultValue: 90
                         }
                     }
+                },
+                {
+                    opcode: 'penUp',
+                    blockType: BlockType.COMMAND,
+                    text: Message.penUp[this.locale]
+                },
+                {
+                    opcode: 'penDown',
+                    blockType: BlockType.COMMAND,
+                    text: Message.penDown[this.locale]
                 }
             ],
             menus: {
@@ -175,6 +195,18 @@ class Scratch3Scratch2RootBlocks {
         await this.rxChar.writeValue(this.appendCrc(value));
     }
 
+    async penUp () {
+        console.log('penUp');
+        const value = this.setPenPosition(0);
+        await this.rxChar.writeValue(this.appendCrc(value));
+    }
+
+    async penDown () {
+        console.log('penDown');
+        const value = this.setPenPosition(1);
+        await this.rxChar.writeValue(this.appendCrc(value));
+    }
+
     generateCrc8Table () {
         const polynomial = 0x07;
         const table = new Uint8Array(256);
@@ -230,6 +262,15 @@ class Scratch3Scratch2RootBlocks {
         arr[4] = (angle >> 16) & 0xFF;
         arr[5] = (angle >> 8) & 0xFF;
         arr[6] = angle & 0xFF;
+        return arr;
+    }
+
+    setPenPosition (position) {
+        const arr = new Uint8Array(19);
+        arr[0] = 2;
+        arr[1] = 0;
+        arr[2] = 0;
+        arr[3] = position;
         return arr;
     }
 
