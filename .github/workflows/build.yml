@@ -20,6 +20,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           path: ./scratch2root
+      - uses: actions/checkout@v4
+        with:
+          repository: champierre/posenet2scratch
+          path: ./posenet2scratch
+      - run: sh ./posenet2scratch/install.sh
       - run: sh ./scratch2root/install.sh
       - run: npm run build
       - name: npm install under scratch2root
