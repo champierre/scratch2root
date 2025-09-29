@@ -15,31 +15,6 @@ const Message = {
         'ja-Hira': 'せつだん',
         'en': 'disconnect'
     },
-    forward: {
-        'ja': '前に進む',
-        'ja-Hira': 'まえにすすむ',
-        'en': 'forward'
-    },
-    right: {
-        'ja': '右に曲がる',
-        'ja-Hira': 'みぎにまがる',
-        'en': 'right'
-    },
-    left: {
-        'ja': '左に曲がる',
-        'ja-Hira': 'ひだりにまがる',
-        'en': 'left'
-    },
-    stop: {
-        'ja': '止まる',
-        'ja-Hira': 'とまる',
-        'en': 'stop'
-    },
-    backward: {
-        'ja': '後ろに進む',
-        'ja-Hira': 'うしろにすすむ',
-        'en': 'backward'
-    },
     driveDistance: {
         'ja': '[DISTANCE] mm進む',
         'ja-Hira': '[DISTANCE] mmすすむ',
@@ -140,31 +115,6 @@ class Scratch3Scratch2RootBlocks {
                             defaultValue: 90
                         }
                     }
-                },
-                {
-                    opcode: 'forward',
-                    blockType: BlockType.COMMAND,
-                    text: Message.forward[this.locale]
-                },
-                {
-                    opcode: 'right',
-                    blockType: BlockType.COMMAND,
-                    text: Message.right[this.locale]
-                },
-                {
-                    opcode: 'left',
-                    blockType: BlockType.COMMAND,
-                    text: Message.left[this.locale]
-                },
-                {
-                    opcode: 'backward',
-                    blockType: BlockType.COMMAND,
-                    text: Message.backward[this.locale]
-                },
-                {
-                    opcode: 'stop',
-                    blockType: BlockType.COMMAND,
-                    text: Message.stop[this.locale]
                 }
             ],
             menus: {
@@ -210,65 +160,6 @@ class Scratch3Scratch2RootBlocks {
         console.log('disconnect');
     }
 
-    async forward () {
-        console.log('forward');
-
-        const value = new Uint8Array([
-            0x01, 0x04, 0x00, 0x00, 0x00, 0x00, 0x64, 0x00,
-            0x00, 0x00, 0x64, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00
-        ]);
-
-        await this.rxChar.writeValue(this.appendCrc(value));
-    }
-
-    async right () {
-        console.log('right');
-
-        const value = new Uint8Array([
-            0x01, 0x04, 0x00, 0x00, 0x00, 0x00, 0x64, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00
-        ]);
-
-        await this.rxChar.writeValue(this.appendCrc(value));
-    }
-
-    async left () {
-        console.log('left');
-
-        const value = new Uint8Array([
-            0x01, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x64, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00
-        ]);
-
-        await this.rxChar.writeValue(this.appendCrc(value));
-    }
-
-    async stop () {
-        console.log('stop');
-
-        const value = new Uint8Array([
-            0x01, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00
-        ]);
-
-        await this.rxChar.writeValue(this.appendCrc(value));
-    }
-
-    async backward () {
-        console.log('backward');
-
-        const value = new Uint8Array([
-            0x01, 0x04, 0x00, 0xFF, 0xFF, 0xFF, 0x9C, 0xFF,
-            0xFF, 0xFF, 0x9C, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00
-        ]);
-
-        await this.rxChar.writeValue(this.appendCrc(value));
-    }
 
     async driveDistance (args) {
         console.log('driveDistance');
