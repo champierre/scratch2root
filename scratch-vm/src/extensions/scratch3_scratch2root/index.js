@@ -82,6 +82,7 @@ class Scratch3Scratch2RootBlocks {
     constructor (runtime) {
         this.runtime = runtime;
         this.rxChar = null;
+        this.txChar = null;
         this.crcTable = this.generateCrc8Table();
     }
 
@@ -147,7 +148,7 @@ class Scratch3Scratch2RootBlocks {
         const DEVICE_INFORMATION_SERVICE = '0000180a-0000-1000-8000-00805f9b34fb';
         const UART_SERVICE = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
         const TX_CHAR_UUID = '6e400002-b5a3-f393-e0a9-e50e24dcca9e';
-        const RX_CHAR_UUID = '6e400002-b5a3-f393-e0a9-e50e24dcca9e';
+        const RX_CHAR_UUID = '6e400003-b5a3-f393-e0a9-e50e24dcca9e';
 
         if (!navigator.bluetooth) {
             console.log('Web Bluetooth API is not supported by this browser.');
@@ -168,43 +169,66 @@ class Scratch3Scratch2RootBlocks {
             const service = await server.getPrimaryService(UART_SERVICE);
             console.log('Service found:', service.uuid);
 
+            const txChar = await service.getCharacteristic(TX_CHAR_UUID);
+            this.txChar = txChar;
+            console.log('TX Characteristic found:', txChar.uuid);
+
             const rxChar = await service.getCharacteristic(RX_CHAR_UUID);
             this.rxChar = rxChar;
-            console.log('Characteristic found:', rxChar.uuid);
+            console.log('RX Characteristic found:', rxChar.uuid);
+
+            // Enable notifications for responses
+            await rxChar.startNotifications();
+            rxChar.addEventListener('characteristicvaluechanged', this.handleResponse.bind(this));
         } catch (error) {
             console.error('Error:', error);
         }
+    }
+
+    handleResponse (event) {
+        const value = event.target.value;
+        const data = new Uint8Array(value.buffer);
+        console.log('Response received:', data);
     }
 
     disconnect () {
         console.log('disconnect');
     }
 
+    async sendCommand (value) {
+        if (!this.txChar) {
+            console.error('Not connected to Root Robot');
+            return;
+        }
+        await this.txChar.writeValue(this.appendCrc(value));
+        // Add small delay to allow robot to process command
+        await new Promise(resolve => setTimeout(resolve, 50));
+    }
 
     async driveDistance (args) {
         console.log('driveDistance');
         const distance = Cast.toNumber(args.DISTANCE);
         const value = this.setDistance(distance);
-        await this.rxChar.writeValue(this.appendCrc(value));
+        await this.sendCommand(value);
     }
 
     async rotate (args) {
         console.log('rotate');
         const angle = Cast.toNumber(args.ANGLE);
         const value = this.setAngle(angle * 10);
-        await this.rxChar.writeValue(this.appendCrc(value));
+        await this.sendCommand(value);
     }
 
     async penUp () {
         console.log('penUp');
         const value = this.setPenPosition(0);
-        await this.rxChar.writeValue(this.appendCrc(value));
+        await this.sendCommand(value);
     }
 
     async penDown () {
         console.log('penDown');
         const value = this.setPenPosition(1);
-        await this.rxChar.writeValue(this.appendCrc(value));
+        await this.sendCommand(value);
     }
 
     generateCrc8Table () {
@@ -267,10 +291,10 @@ class Scratch3Scratch2RootBlocks {
 
     setPenPosition (position) {
         const arr = new Uint8Array(19);
-        arr[0] = 2;
-        arr[1] = 0;
-        arr[2] = 0;
-        arr[3] = position;
+        arr[0] = 2;  // Device 2 = Marker/Eraser
+        arr[1] = 0;  // Command 0 = Set position
+        arr[2] = 0;  // Packet ID
+        arr[3] = position;  // 0 = up, 1 = down
         return arr;
     }
 
