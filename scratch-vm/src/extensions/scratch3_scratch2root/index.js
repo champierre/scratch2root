@@ -84,6 +84,7 @@ class Scratch3Scratch2RootBlocks {
         this.rxChar = null;
         this.txChar = null;
         this.crcTable = this.generateCrc8Table();
+        this.commandResolvers = new Map();
     }
 
     getInfo () {
@@ -189,46 +190,101 @@ class Scratch3Scratch2RootBlocks {
         const value = event.target.value;
         const data = new Uint8Array(value.buffer);
         console.log('Response received:', data);
+
+        // Check if this is a driveDistance completion response
+        // Format: [1, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 129]
+        if (data.length >= 2 && data[0] === 1 && data[1] === 8) {
+            const key = `${data[0]}-${data[1]}`;
+            const resolver = this.commandResolvers.get(key);
+            if (resolver) {
+                resolver();
+                this.commandResolvers.delete(key);
+            }
+        }
+
+        // Check if this is a rotate completion response
+        // Format: [1, 12, ...]
+        if (data.length >= 2 && data[0] === 1 && data[1] === 12) {
+            const key = `${data[0]}-${data[1]}`;
+            const resolver = this.commandResolvers.get(key);
+            if (resolver) {
+                resolver();
+                this.commandResolvers.delete(key);
+            }
+        }
+
+        // Check if this is a pen position completion response
+        // Format: [2, 0, ...]
+        if (data.length >= 2 && data[0] === 2 && data[1] === 0) {
+            const key = `${data[0]}-${data[1]}`;
+            const resolver = this.commandResolvers.get(key);
+            if (resolver) {
+                resolver();
+                this.commandResolvers.delete(key);
+            }
+        }
     }
 
     disconnect () {
         console.log('disconnect');
     }
 
-    async sendCommand (value) {
+    async sendCommand (value, waitForResponse = false) {
         if (!this.txChar) {
             console.error('Not connected to Root Robot');
             return;
         }
+
+        let responsePromise = null;
+        if (waitForResponse) {
+            const key = `${value[0]}-${value[1]}`;
+            responsePromise = new Promise((resolve) => {
+                this.commandResolvers.set(key, resolve);
+            });
+        }
+
         await this.txChar.writeValue(this.appendCrc(value));
-        // Add small delay to allow robot to process command
-        await new Promise(resolve => setTimeout(resolve, 50));
+
+        if (waitForResponse) {
+            // Wait for response with 10 second timeout
+            await Promise.race([
+                responsePromise,
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Command timeout')), 10000))
+            ]).catch(err => {
+                console.error('Command error:', err);
+                const key = `${value[0]}-${value[1]}`;
+                this.commandResolvers.delete(key);
+            });
+        } else {
+            // Add small delay to allow robot to process command
+            await new Promise(resolve => setTimeout(resolve, 50));
+        }
     }
 
     async driveDistance (args) {
         console.log('driveDistance');
         const distance = Cast.toNumber(args.DISTANCE);
         const value = this.setDistance(distance);
-        await this.sendCommand(value);
+        await this.sendCommand(value, true);  // Wait for completion response
     }
 
     async rotate (args) {
         console.log('rotate');
         const angle = Cast.toNumber(args.ANGLE);
         const value = this.setAngle(angle * 10);
-        await this.sendCommand(value);
+        await this.sendCommand(value, true);  // Wait for completion response
     }
 
     async penUp () {
         console.log('penUp');
         const value = this.setPenPosition(0);
-        await this.sendCommand(value);
+        await this.sendCommand(value, true);  // Wait for completion response
     }
 
     async penDown () {
         console.log('penDown');
         const value = this.setPenPosition(1);
-        await this.sendCommand(value);
+        await this.sendCommand(value, true);  // Wait for completion response
     }
 
     generateCrc8Table () {
