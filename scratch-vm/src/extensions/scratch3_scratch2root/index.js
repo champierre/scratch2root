@@ -99,6 +99,7 @@ class Scratch3Scratch2RootBlocks {
 
     constructor (runtime) {
         this.runtime = runtime;
+        this.device = null;
         this.rxChar = null;
         this.txChar = null;
         this.crcTable = this.generateCrc8Table();
@@ -212,14 +213,14 @@ class Scratch3Scratch2RootBlocks {
         }
 
         try {
-            const device = await navigator.bluetooth.requestDevice({
+            this.device = await navigator.bluetooth.requestDevice({
                 filters: [{
                     services: [ROOT_SERVICE_UUID]
                 }],
                 optionalServices: [DEVICE_INFORMATION_SERVICE, UART_SERVICE]
             });
 
-            const server = await device.gatt.connect();
+            const server = await this.device.gatt.connect();
             console.log('Connected to GATT server');
 
             const service = await server.getPrimaryService(UART_SERVICE);
@@ -291,8 +292,32 @@ class Scratch3Scratch2RootBlocks {
         }
     }
 
-    disconnect () {
+    async disconnect () {
         console.log('disconnect');
+
+        if (this.device && this.device.gatt.connected) {
+            try {
+                // Stop notifications
+                if (this.rxChar) {
+                    await this.rxChar.stopNotifications();
+                    this.rxChar.removeEventListener('characteristicvaluechanged', this.handleResponse.bind(this));
+                }
+
+                // Disconnect from device
+                this.device.gatt.disconnect();
+                console.log('Disconnected from Root Robot');
+
+                // Clear references
+                this.device = null;
+                this.rxChar = null;
+                this.txChar = null;
+                this.commandResolvers.clear();
+            } catch (error) {
+                console.error('Disconnect error:', error);
+            }
+        } else {
+            console.log('Not connected to any device');
+        }
     }
 
     async sendCommand (value, waitForResponse = false) {
