@@ -24,6 +24,12 @@ jobs:
         with:
           repository: champierre/posenet2scratch
           path: ./posenet2scratch
+      - uses: actions/checkout@v4
+        with:
+          repository: microbit-more/mbit-more-v2
+          ref: stretch3
+          path: ./microbitMore
+      - run: sh ./microbitMore/install-stretch3.sh    
       - run: sh ./posenet2scratch/install.sh
       - run: sh ./scratch2root/install.sh
       - run: npm run build
